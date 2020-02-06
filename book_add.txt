@@ -172,7 +172,7 @@ begin
 							CheckBarIndex = 0;
 							EntryBarIndex = 0;
 							PivotActiveIndex=0;
-							if close[1] - Low[1] <= Entry_Bar_1 then
+							if close[1] - close[2] <= Entry_Bar_1 then
 							begin
 								if Log_Enable then
 								begin
@@ -221,7 +221,7 @@ begin
 								
 								
 							end
-							else if close[1] - Low[1] > Entry_Bar_1 then
+							else if close[1] - Close[2] > Entry_Bar_1 then
 							begin//delay
 								if Log_Enable then
 								begin
@@ -286,7 +286,7 @@ begin
 								CheckBarIndex = 0;
 								EntryBarIndex = 0;
 								PivotActiveIndex=0;
-								if close[1] - Low[1] <= Entry_Bar_1 then
+								if close[1] - Close[2] <= Entry_Bar_1 then
 								begin
 									if Log_Enable then
 									begin
@@ -333,7 +333,7 @@ begin
 									end;
 
 								end
-								else if close[1] - Low[1] > Entry_Bar_1 then
+								else if close[1] - Close[2] > Entry_Bar_1 then
 								begin//waiting
 									if Log_Enable then
 									begin
