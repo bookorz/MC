@@ -259,7 +259,7 @@ begin
 
 						end;
 					end
-					else if currentbar - PivotActiveIndex > 3 and PivotActiveIndex <> 0 and PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex ) > 2 then
+					else if currentbar - PivotActiveIndex > 3 and PivotActiveIndex <> 0 and PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex ) > 2 and high[PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex )] > high[PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex )+1] then
 					begin
 						if Log_Enable then
 						begin
@@ -644,7 +644,7 @@ if Mark_Enabled then
 		value2=arw_new(d,t,high,true);  	
 		value2=text_new(date,time,high+16,"Waiting") ;
 	end;
-	if PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex ) = 2 and PivotActiveIndex <> 0 then
+	if currentbar - PivotActiveIndex > 3 and PivotActiveIndex <> 0 and PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex ) = 2 and high[PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex )] > high[PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex )+1] then
 	begin
 		value2=arw_new[2](d,t,low,false);  	
 		value2=text_new[2](date,time,low-16,"Pivot High") ;
@@ -652,6 +652,7 @@ if Mark_Enabled then
 	end;
 
 end;
+
 
 
 
