@@ -60,7 +60,7 @@ begin
 
 end;
 
-if Time < Trade_Time then
+if Time < Trade_Time and Date=Date[1] then
 begin 
 		
 	switch(MainState)
@@ -652,6 +652,7 @@ if Mark_Enabled then
 	end;
 
 end;
+
 
 
 
