@@ -15,7 +15,7 @@ intrabarpersist MA_Limit_Level_2(0),
 intrabarpersist StopLimitLevel_1(0),
 intrabarpersist StopLimitLevel_2(0),
 intrabarpersist PivotActiveIndex(0),
-intrabarpersist HighestPrice(0);
+intrabarpersist PeakPrice(0);
 
 array:
 intrabarpersist EntryNameList[60](""),
@@ -47,7 +47,7 @@ if Date<>Date[1] then  //When new day comming
 begin 
 	MainState =0;
 	PositionState = 0;
-	HighestPrice = 0;
+	PeakPrice = 0;
 	if time[1] < Close_Position_Limited_Time then
 	begin
 		if marketposition <> 0 then
@@ -516,15 +516,15 @@ if PositionState > 0 then//Long exist
 begin
 	//print(date,time,currentbar,"CRRR",entryprice );
 
-	if high[1]> HighestPrice then
+	if high[1]> PeakPrice then
 	begin
-		HighestPrice = high[1];
+		PeakPrice = high[1];
 	end;
 	MA_Limit_Level_1 = 0;
 	MA_Limit_Level_2 = 0;
 	//print(date,time,currentbar,"marketposition = 1",PositionState , EntryPrice[PositionState-1]);
 
-	if HighestPrice  - EntryPrice[PositionState-1] > MA_Limit_Trigger_Point_Level_2 then
+	if PeakPrice  - EntryPrice[PositionState-1] > MA_Limit_Trigger_Point_Level_2 then
 	begin
 		if Log_Enable then
 		begin
@@ -533,7 +533,7 @@ begin
 		end;
 		MA_Limit_Level_2 = 1;
 	end
-	else if HighestPrice  - EntryPrice[PositionState-1]> MA_Limit_Trigger_Point_Level_1 then
+	else if PeakPrice  - EntryPrice[PositionState-1]> MA_Limit_Trigger_Point_Level_1 then
 	begin
 		if Log_Enable then
 		begin
@@ -622,7 +622,7 @@ if time >= Close_Position_Limited_Time then
 begin
 	MainState = 0;
 	PositionState = 0;
-	HighestPrice = 0;
+	PeakPrice = 0;
       	if marketposition <> 0 then
 	begin
 		sell("s-dayEnd") next bar at market;
