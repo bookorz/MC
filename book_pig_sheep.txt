@@ -146,8 +146,9 @@ begin
 						end;
 						if PreCheck then
 						begin
-							buy("BUY1"+text(PositionState))1 share next bar at market;
-							EntryNameList[PositionState] = "BUY"+text(PositionState); 
+							
+							EntryNameList[PositionState] = "BUY1"+text(PositionState); 
+							buy(EntryNameList[PositionState])1 share next bar at market;
 							PositionIndex[PositionState] = currentbar;
 							StopPrice[PositionState] = close - Stop_Loss_Point;
 							EntryPrice[PositionState] = close[1];
@@ -172,8 +173,9 @@ begin
 								end;
 								if close[1] > PeakPrice then
 								begin
-									buy("BUY2"+text(PositionState))1 share next bar at market;
-									EntryNameList[PositionState] = "BUY"+text(PositionState); 
+									
+									EntryNameList[PositionState] = "BUY2"+text(PositionState); 
+									buy(EntryNameList[PositionState])1 share next bar at market;
 									PositionIndex[PositionState] = currentbar;
 									StopPrice[PositionState] = close - Stop_Loss_Point;
 									EntryPrice[PositionState] = close[1];
@@ -240,7 +242,7 @@ begin
 					CheckBarIndex = 0;
 					EntryBarIndex = 0;
 					PivotActiveIndex=0;
-					MainState = 0;
+					MainState = -1;
 					
 				end
 				else
@@ -339,8 +341,9 @@ begin
 									end
 									else
 									begin
-										buy("BUY"+text(PositionState))1 share next bar at market;
+										
 										EntryNameList[PositionState] = "BUY"+text(PositionState); 
+										buy(EntryNameList[PositionState])1 share next bar at market;
 										PositionIndex[PositionState] = currentbar;
 										StopPrice[PositionState] = close - Stop_Loss_Point;
 										EntryPrice[PositionState] = close[1];
@@ -453,8 +456,9 @@ begin
 										else
 										begin
 
-											buy("BUY Pivot"+text(PositionState))1 share next bar at market;
+											
 											EntryNameList[PositionState] = "BUY Pivot"+text(PositionState);
+											buy(EntryNameList[PositionState])1 share next bar at market;
 											StopPrice[PositionState] = close - Stop_Loss_Point;
 											EntryPrice[PositionState] = close[1];
 											PositionIndex[PositionState] = currentbar;
@@ -635,8 +639,9 @@ begin
 					print(date,time,currentbar,"Delay match-2",CheckBarPrice );
 				end;
 
-				buy("BUY Delay"+text(PositionState))1 share next bar at market;
+				
 				EntryNameList[PositionState] = "BUY Delay"+text(PositionState);
+				buy(EntryNameList[PositionState])1 share next bar at market;
 				//MainState = 4;
 				
 				StopPrice[PositionState] = close - Stop_Loss_Point;
@@ -713,7 +718,7 @@ begin
 	//if false then
 	 
 	
-	
+	//print(date,time,currentbar,"Stop Loss ",PositionState,StopPrice[PositionState-1]);
 	if Close <= StopPrice[PositionState-1] then
 	begin
 		if Log_Enable then
@@ -805,3 +810,4 @@ end;
 
 
 
+ 
