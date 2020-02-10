@@ -1,0 +1,807 @@
+[IntrabarOrderGeneration = true]
+vars:
+intrabarpersist MainState(-1),
+intrabarpersist PositionState(0),
+//intrabarpersist EntryPrice(0),
+//intrabarpersist StopPrice(0),
+intrabarpersist EntryBarIndex(0),
+//intrabarpersist PositionIndex(0),
+intrabarpersist CheckBarIndex(0),
+intrabarpersist CheckBarPrice(0),
+intrabarpersist UpMAPrice(0),
+intrabarpersist RestIndex(0),
+intrabarpersist MA_Limit_Level_1(0),
+intrabarpersist MA_Limit_Level_2(0),
+intrabarpersist StopLimitLevel_1(0),
+intrabarpersist StopLimitLevel_2(0),
+intrabarpersist PivotActiveIndex(0),
+intrabarpersist PeakPrice(0),
+intrabarpersist PreCheck(false),
+intrabarpersist DateBeginIndex(0),
+intrabarpersist MaIndex(0);
+
+array:
+intrabarpersist EntryNameList[60](""),
+intrabarpersist StopPrice[60](0),
+intrabarpersist EntryPrice[60](0),
+intrabarpersist PositionIndex[60](0);
+
+inputs: 
+MA_Limit_Trigger_Point_Level_1(80),
+MA_Limit_Trigger_Point_Level_2(120),
+Force_Take_Profit(160),
+Stop_Loss_Point(40),
+Trade_Time(1400),
+MA_Value(15),
+MA_Limit_1(5),
+MA_Limit_2(10),
+Entry_Bar_1(80),
+Close_Position_Limited_Time(1450),
+MApoint(20),
+Mark_Enabled(True),
+Log_Enable(False),
+Add_Greater_Point(1);
+
+
+
+
+ 
+if Date<>Date[1] then  //When new day comming	
+begin 
+	
+	MainState =-1;
+	PositionState = 0;
+	PeakPrice = 0;
+	DateBeginIndex = currentbar;
+	if time[1] < Close_Position_Limited_Time then
+	begin
+		if marketposition <> 0 then
+		begin
+			sell("s-dayStart") next bar at market;
+			buytocover("b-dayStart") next bar at market;
+			
+		end;
+	end;
+	
+end;
+
+if Time < Trade_Time and Date=Date[1] then
+begin 
+	
+
+	switch(MainState)
+	begin
+		case -1://waiting for up ma
+			if close[1] > Average(close[1],MA_Value) and close[2] <= Average(close[1],MA_Value) then
+			begin// Up MA
+				if Log_Enable then
+				begin
+					print(date,time,currentbar,"Up MA",MainState);
+				end;
+				CheckBarIndex = currentbar-1;
+				EntryBarIndex = currentbar-1;
+				CheckBarPrice = High[1];
+				UpMAPrice  = Average(close[1],MA_Value);	
+				MaIndex = currentbar-1;	
+				MainState = 0;
+				if close[2]<Average(close[2],MA_Value) and close[3]<Average(close[3],MA_Value) and close[4]<Average(close[4],MA_Value) then
+				begin
+					if Log_Enable then
+					begin
+						print(date,time,currentbar,"PreCheck ok",MainState);
+					end;
+
+					PreCheck = true;
+				end
+				else
+				begin
+					if Log_Enable then
+					begin
+						print(date,time,currentbar,"PreCheck NG",MainState);
+					end;
+
+					PreCheck = false;
+					if PivotHighVSBar(1,high[1],1,1,currentbar - DateBeginIndex) <> -1 then
+					begin
+						PeakPrice = high[PivotHighVSBar(1,high[1],1,1,currentbar - DateBeginIndex)];
+					end
+					else
+					begin
+						PeakPrice = -1;
+					end;
+					if Log_Enable then
+					begin 
+						print(date,time,currentbar,"PeakPrice:" + text(PeakPrice),MainState);
+					end;
+				end;
+			end;
+		case 0:// Watting for pattern
+			if currentbar - CheckBarIndex = 2 then
+			begin
+				if close[1] < Average(close[1],MA_Value) then
+				begin
+					if Log_Enable then
+					begin
+
+						print(date,time,currentbar,"Dwon MA",MainState);
+					end;
+
+					CheckBarIndex = currentbar-1;
+					MainState = -1;
+				end
+				else
+				begin
+					if close[2]-open[2]<0 and close[1]-open[1]>0 then
+					begin
+						print(date,time,currentbar,high[1],Highest(high[2],currentbar - MaIndex));
+						print(date,time,currentbar,close[1],Highest(close[2],currentbar - MaIndex));
+
+					end;
+					if close[2]-open[2]<0 and close[1]-open[1]>0 and High[1] > Highest(high[2],currentbar - MaIndex) and Close[1] > Highest(close[2],currentbar - MaIndex) then
+					begin// black K near by red K match
+						if Log_Enable then
+						begin
+
+							print(date,time,currentbar,"Pattern match",MainState);
+						end;
+						if PreCheck then
+						begin
+							buy("BUY1"+text(PositionState))1 share next bar at market;
+							EntryNameList[PositionState] = "BUY"+text(PositionState); 
+							PositionIndex[PositionState] = currentbar;
+							StopPrice[PositionState] = close - Stop_Loss_Point;
+							EntryPrice[PositionState] = close[1];
+							//MainState = 4;
+							PositionState = PositionState + 1;
+				 			
+							CheckBarIndex = currentbar-1;
+							EntryBarIndex = currentbar-1;
+							CheckBarPrice = High[1];
+							UpMAPrice  = Average(close[1],MA_Value);			
+							MainState = 1;
+
+						end
+						else
+						begin
+							if PeakPrice <> -1 then
+							begin
+								if Log_Enable then
+								begin
+
+									print(date,time,currentbar,"Check peak price",MainState);
+								end;
+								if close[1] > PeakPrice then
+								begin
+									buy("BUY2"+text(PositionState))1 share next bar at market;
+									EntryNameList[PositionState] = "BUY"+text(PositionState); 
+									PositionIndex[PositionState] = currentbar;
+									StopPrice[PositionState] = close - Stop_Loss_Point;
+									EntryPrice[PositionState] = close[1];
+									//MainState = 4;
+									PositionState = PositionState + 1;
+						 			
+									CheckBarIndex = currentbar-1;
+									EntryBarIndex = currentbar-1;
+									CheckBarPrice = High[1];
+									UpMAPrice  = Average(close[1],MA_Value);			
+									MainState = 1;
+
+								end
+								else
+								begin
+									if Log_Enable then
+									begin
+
+										print(date,time,currentbar,"Close not over the peak price",MainState);
+									end;
+									CheckBarIndex = currentbar-1;
+
+								end;
+
+							end
+							else
+							begin
+								CheckBarIndex = currentbar-1;
+								MainState = -1;
+								if Log_Enable then
+								begin
+
+									print(date,time,currentbar,"Find pattern again",MainState);
+								end;
+
+							end;
+						end;
+						
+					end
+					else
+					begin
+						if Log_Enable then
+						begin
+
+							print(date,time,currentbar,"Pattern not match",MainState);
+						end;
+						CheckBarIndex = currentbar-1;
+
+					end;
+				end;
+			end;
+		case 1://waiting for rest
+			if currentbar - CheckBarIndex = 2 then
+			begin
+				
+				if close[1] < Average(close[1],MA_Value) and PositionState = 0 then
+				begin// Cancel
+					if Log_Enable then
+					begin
+
+						print(date,time,currentbar,"Cancel",MainState);
+					end;
+					RestIndex  = 0;
+					CheckBarIndex = 0;
+					EntryBarIndex = 0;
+					PivotActiveIndex=0;
+					MainState = 0;
+					
+				end
+				else
+				begin 
+					if High[1] < CheckBarPrice then
+					begin// Rest
+						if Log_Enable then
+						begin
+
+							print(date,time,currentbar,"Rest",MainState);
+						end;
+						RestIndex = currentbar-1;
+					 	CheckBarIndex = currentbar-1;
+					 	if PivotActiveIndex = 0 then
+					 	begin
+					 		PivotActiveIndex = currentbar-1;
+						end;
+						MainState = 2;
+					end
+					else
+					begin//Waiting rest
+						if Log_Enable then
+						begin
+
+							print(date,time,currentbar,"Waiting rest",MainState,PositionState);
+						end;
+						
+						RestIndex = 0;
+						CheckBarIndex = currentbar-1;
+						CheckBarPrice = High[1];
+						PivotActiveIndex =0;
+						
+
+					end;
+				end;
+				
+			end;
+		case 2://waiting for break
+			
+ 			if currentbar - CheckBarIndex = 2 then
+			begin
+				if close[1] < Average(close[1],MA_Value) and PositionState = 0 then
+				begin// Cancel
+					if Log_Enable then
+					begin
+
+						print(date,time,currentbar,"Cancel",MainState);
+					end;
+					RestIndex  = 0;
+					CheckBarIndex = 0;
+					EntryBarIndex = 0;
+					PivotActiveIndex=0;
+					MainState = 0;
+	
+				end
+				else
+				begin
+					if close[1] > CheckBarPrice and RestIndex <> 0 and RestIndex <> currentbar - 1 then
+					begin// buy
+						if Log_Enable then
+						begin
+
+							print(date,time,currentbar,"Buy",MainState);
+						end;
+						if close[1] - UpMAPrice > MApoint then
+						begin
+							if Log_Enable then
+							begin
+
+								print(date,time,currentbar,"Buy-1",MainState);
+							end;
+
+							RestIndex = 0;
+							CheckBarIndex = 0;
+							EntryBarIndex = 0;
+							PivotActiveIndex=0;
+							if close[1] - close[2] <= Entry_Bar_1 then
+							begin
+								if Log_Enable then
+								begin
+
+									print(date,time,currentbar,"Buy-2",MainState);
+								end;
+
+								if Close[1]-Low[1] > High[1] - Close[1] then // Bar Quality
+								begin
+									if Log_Enable then
+									begin
+
+										print(date,time,currentbar,"BUY"+text(PositionState),MainState);
+									end;
+									if PositionState <> 0 and close - EntryPrice[PositionState-1] <= Add_Greater_Point then
+									begin
+										print(date,time,currentbar,"Cancel Add",MainState);
+
+									end
+									else
+									begin
+										buy("BUY"+text(PositionState))1 share next bar at market;
+										EntryNameList[PositionState] = "BUY"+text(PositionState); 
+										PositionIndex[PositionState] = currentbar;
+										StopPrice[PositionState] = close - Stop_Loss_Point;
+										EntryPrice[PositionState] = close[1];
+										//MainState = 4;
+										PositionState = PositionState + 1;
+							 			
+										CheckBarIndex = currentbar-1;
+										EntryBarIndex = currentbar-1;
+										CheckBarPrice = High[1];
+										UpMAPrice  = Average(close[1],MA_Value);			
+										MainState = 1;
+									end;
+								end
+								else if PositionState = 0 then
+								begin
+									if Log_Enable then
+									begin
+
+										print(date,time,currentbar,"Up Shadow limit",MainState);
+									end;
+									MainState = 0;
+								end;
+								
+								
+							end
+							else if close[1] - Close[2] > Entry_Bar_1 then
+							begin//delay
+								if Log_Enable then
+								begin
+
+									print(date,time,currentbar,"Delay",MainState);
+								end;
+								if Close[1]-Low[1] > High[1] - Close[1] then // Bar Quality
+								begin
+									if Log_Enable then
+									begin
+
+										print(date,time,currentbar,"Delay Bar Quality check",MainState);
+									end;
+
+									MainState = 3;
+									CheckBarPrice = Low[1];
+									CheckBarIndex = currentbar-1;
+								end;
+							end;
+						end
+						else
+						begin
+							// Break
+							if Log_Enable then
+							begin
+
+								print(date,time,currentbar,"Break",MainState);
+							end;
+
+							RestIndex = 0;
+							CheckBarIndex = currentbar-1;
+							CheckBarPrice = High[1];
+							PivotActiveIndex =0;
+							MainState = 1;
+
+						end;
+					end
+					else if currentbar - PivotActiveIndex > 3 and PivotActiveIndex <> 0 and PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex ) > 2 and high[PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex )] > high[PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex )+1] then
+					begin
+						if Log_Enable then
+						begin
+
+							print(date,time,currentbar,"Pivot match",MainState,PivotHighVS(1,high[1],1,1,currentbar- PivotActiveIndex ));
+						end;
+
+						if close[1] > PivotHighVS(1,high[1],1,1,currentbar- PivotActiveIndex ) then
+						begin
+							if Log_Enable then
+							begin 
+
+								print(date,time,currentbar,"Pivot match-1",MainState);
+							end;
+
+							if close[1] - UpMAPrice > MApoint then
+							begin
+								if Log_Enable then
+								begin
+
+									print(date,time,currentbar,"Pivot match-1.1",MainState);
+								end;
+								RestIndex = 0;
+								CheckBarIndex = 0;
+								EntryBarIndex = 0;
+								PivotActiveIndex=0;
+								if close[1] - Close[2] <= Entry_Bar_1 then
+								begin
+									if Log_Enable then
+									begin
+
+										print(date,time,currentbar,"Pivot match-2",MainState);
+									end;
+									if Close[1]-Low[1] > High[1] - Close[1] then // Bar Quality
+									begin
+										if Log_Enable then
+										begin
+
+											print(date,time,currentbar,"Pivot match-3",MainState);
+										end;
+										if PositionState <> 0 and close - EntryPrice[PositionState-1] <= Add_Greater_Point then
+										begin
+											print(date,time,currentbar,"Cancel Add",MainState);
+
+										end
+										else
+										begin
+
+											buy("BUY Pivot"+text(PositionState))1 share next bar at market;
+											EntryNameList[PositionState] = "BUY Pivot"+text(PositionState);
+											StopPrice[PositionState] = close - Stop_Loss_Point;
+											EntryPrice[PositionState] = close[1];
+											PositionIndex[PositionState] = currentbar;
+											//MainState = 4;
+											PositionState = PositionState + 1;
+											CheckBarIndex = currentbar-1;
+											EntryBarIndex = currentbar-1;
+											CheckBarPrice = High[1];
+											UpMAPrice  = Average(close[1],MA_Value);			
+											MainState = 1;
+										end;
+									end
+									else if PositionState = 0 then
+									begin	
+										if Log_Enable then
+										begin
+	
+											print(date,time,currentbar,"Pivot match-0",MainState);
+										end;
+										MainState = 0;
+									end;
+
+								end
+								else if close[1] - Close[2] > Entry_Bar_1 then
+								begin//waiting
+									if Log_Enable then
+									begin
+
+										print(date,time,currentbar,"Pivot match waiting",MainState);
+									end;
+									if Close[1]-Low[1] > High[1] - Close[1] then // Bar Quality
+									begin
+										if Log_Enable then
+										begin
+
+											print(date,time,currentbar,"Pivot match waiting Bar Quality check",MainState);
+										end;
+
+										MainState = 3;
+										CheckBarPrice = Low[1];
+										CheckBarIndex = currentbar-1;
+									end;
+								end;
+							end
+							else
+							begin
+								// Break
+								if Log_Enable then
+								begin
+
+									print(date,time,currentbar,"Pivot match break",MainState);
+								end;
+								RestIndex = 0;
+								CheckBarIndex = currentbar-1;
+								CheckBarPrice = High[1];
+								PivotActiveIndex =0;
+								MainState = 1;
+
+							end;
+
+						end
+						else if high[1] > PivotHighVS(1,high[1],1,1,currentbar- PivotActiveIndex ) then
+						begin
+							// Pivot Break
+							if Log_Enable then
+							begin
+
+								print(date,time,currentbar,"Pivot Break",MainState);
+							end;
+							PivotActiveIndex =currentbar-1;
+						end
+						else if High[1] > CheckBarPrice then
+						begin// waiting for rest
+							if Log_Enable then
+							begin
+
+								print(date,time,currentbar,"waiting for rest",MainState);
+							end;
+							RestIndex = 0;
+							CheckBarIndex = currentbar-1;
+							CheckBarPrice = High[1];
+							PivotActiveIndex =0;
+							MainState = 1;
+						end
+						else if High[1] <= CheckBarPrice then
+						begin//Still rest
+							if Log_Enable then
+							begin
+
+								print(date,time,currentbar,"Still rest-1",MainState);
+							end;
+							RestIndex = currentbar-1;
+						 	CheckBarIndex = currentbar-1;
+						 	if PivotActiveIndex = 0 then
+						 	begin
+						 		PivotActiveIndex = currentbar-1;
+							end;
+						end;
+
+						
+					end
+					else if High[1] > CheckBarPrice then
+					begin// waiting for rest
+						if Log_Enable then
+						begin
+
+							print(date,time,currentbar,"waiting for rest",MainState);
+						end;
+						RestIndex = 0;
+						CheckBarIndex = currentbar-1;
+						CheckBarPrice = High[1];
+						PivotActiveIndex =0;
+						MainState = 1;
+					end
+					else if High[1] <= CheckBarPrice then
+					begin//Still rest
+						if Log_Enable then
+						begin
+
+							print(date,time,currentbar,"Still rest-2",MainState,PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex ));
+						end;
+						RestIndex = currentbar-1;
+					 	CheckBarIndex = currentbar-1;
+					 	if PivotActiveIndex = 0 then
+					 	begin
+					 		PivotActiveIndex = currentbar-1;
+						end;
+					end; 
+				end;
+			end;
+		
+	end;
+
+	if MainState = 3 then//Delay
+	begin
+		//print(date,time,currentbar,"Delay check",close - CheckBarPrice );
+
+		
+		if currentbar - CheckBarIndex > 10 then
+		begin
+			if Log_Enable then
+			begin
+
+				print(date,time,currentbar,"Delay 10 bar limit",MainState);
+			end;
+			MainState = 0;
+			CheckBarPrice = 0;
+			CheckBarIndex = 0;
+			//StopPrice = 0;
+			PivotActiveIndex=0;				
+		end
+		else if close - CheckBarPrice <= Entry_Bar_1 and close > Average(close,MA_Value) then
+		begin
+			if Log_Enable then
+			begin
+
+				print(date,time,currentbar,"Delay match",CheckBarPrice );
+			end;
+			CheckBarPrice = 0;
+			CheckBarIndex = 0;
+			PivotActiveIndex=0;
+			
+			if Log_Enable then
+			begin
+
+				print(date,time,currentbar,"Delay match-1",CheckBarPrice );
+			end;
+			if PositionState <> 0 and close - EntryPrice[PositionState-1] <= Add_Greater_Point then
+			begin
+				print(date,time,currentbar,"Cancel Add",CheckBarPrice );
+
+			end
+			else
+			begin
+				if Log_Enable then
+				begin
+
+					print(date,time,currentbar,"Delay match-2",CheckBarPrice );
+				end;
+
+				buy("BUY Delay"+text(PositionState))1 share next bar at market;
+				EntryNameList[PositionState] = "BUY Delay"+text(PositionState);
+				//MainState = 4;
+				
+				StopPrice[PositionState] = close - Stop_Loss_Point;
+				EntryPrice[PositionState] = close;
+				PositionIndex[PositionState] = currentbar;
+				
+				CheckBarIndex = currentbar-1;
+				EntryBarIndex = currentbar-1;
+				CheckBarPrice = High[1];
+				UpMAPrice  = Average(close[1],MA_Value);			
+				MainState = 1;
+				PositionState = PositionState + 1;
+			end;
+		end;
+			
+		
+	end;
+end;
+//value1=arw_new(d,t,low,true);  	
+//	value1=text_new(date,time,low-10,text(PositionState)) ;
+if PositionState > 0 then//Long exist
+begin
+	//print(date,time,currentbar,"CRRR",entryprice );
+
+	if high[1]> PeakPrice then
+	begin
+		PeakPrice = high[1];
+	end;
+	MA_Limit_Level_1 = 0;
+	MA_Limit_Level_2 = 0;
+	//print(date,time,currentbar,"marketposition = 1",PositionState , EntryPrice[PositionState-1]);
+
+	if PeakPrice  - EntryPrice[PositionState-1] > MA_Limit_Trigger_Point_Level_2 then
+	begin
+		if Log_Enable then
+		begin
+
+			print(date,time,currentbar,"MA_Limit_Level_2",MainState);
+		end;
+		MA_Limit_Level_2 = 1;
+	end
+	else if PeakPrice  - EntryPrice[PositionState-1]> MA_Limit_Trigger_Point_Level_1 then
+	begin
+		if Log_Enable then
+		begin
+
+			print(date,time,currentbar,"MA_Limit_Level_1",MainState);
+		end;
+		MA_Limit_Level_1 = 1; 
+	end;
+	
+	if MA_Limit_Level_2 = 1  then
+	begin
+		if Log_Enable then
+		begin
+
+			print(date,time,currentbar,text(StopLimitLevel_2 ),MainState);
+		end;
+
+		StopLimitLevel_2 = Average(close[1],MA_Limit_1);
+	end
+	else if MA_Limit_Level_1 = 1 then
+	begin
+		if Log_Enable then
+		begin
+
+			print(date,time,currentbar,text(StopLimitLevel_2 ),MainState);
+		end;
+		StopLimitLevel_2 = Average(close[1],MA_Limit_2);
+	end;
+	
+//value2=arw_new(d,t,high,true);  	
+//value2=text_new(date,time,high+18,text(CheckBarPrice )) ;
+	//if false then
+	 
+	
+	
+	if Close <= StopPrice[PositionState-1] then
+	begin
+		if Log_Enable then
+		begin
+ 
+	 		print(date,time,currentbar,"Stop Loss ",EntryNameList[PositionState-1]);
+		end;
+
+		sell("Stop Loss")from entry(EntryNameList[PositionState-1]) 1 share total next bar at market;
+		PositionIndex[PositionState-1] = 0;
+		PositionState = PositionState - 1;
+	end
+	else if close - EntryPrice[PositionState-1] > Force_Take_Profit then
+	begin
+		if Log_Enable then
+		begin
+
+			print(date,time,currentbar,"Force Take Profit",close ,EntryPrice[PositionState-1]);
+		end;
+		sell("Force Take Profit")from entry(EntryNameList[PositionState-1]) 1 share total next bar at market;
+		PositionIndex[PositionState-1] = 0;
+		PositionState = PositionState - 1;
+
+	end
+	else if Close[1] <= StopLimitLevel_2 and StopLimitLevel_2 <> 0 and currentbar - PositionIndex[PositionState-1] > 1 and (MA_Limit_Level_1 =1 or MA_Limit_Level_2 = 1) then
+	begin
+		if Log_Enable then
+		begin 
+
+			print(date,time,currentbar,"Take Profit ",EntryNameList[PositionState-1]);
+		end;
+		sell("Take Profit")from entry(EntryNameList[PositionState-1]) 1 share total next bar at market;
+		PositionIndex[PositionState-1] = 0;
+		PositionState = PositionState - 1;
+		
+	end;
+	
+
+
+end
+else if marketposition = 0 then
+begin
+	MA_Limit_Level_1 = 0;
+	MA_Limit_Level_2 = 0;
+	
+end;
+
+
+
+if time >= Close_Position_Limited_Time then
+begin
+	MainState = -1;
+	PositionState = 0;
+	PeakPrice = 0;
+      	if marketposition <> 0 then
+	begin
+		sell("s-dayEnd") next bar at market;
+		buytocover("b-dayEnd") next bar at market;
+		
+	end;
+end;
+
+if Mark_Enabled then
+	begin
+	if MainState= 0 and MainState[1] <> 0 then
+	begin
+		value2=arw_new[1](d,t,high,true);  	
+		value2=text_new[1](date,time,high+18,"Up MA") ;
+	end;
+	
+	if MainState =3  then
+	begin
+		value2=arw_new(d,t,high,true);  	
+		value2=text_new(date,time,high+16,"Waiting") ;
+	end;
+	if MainState<> 0 and currentbar - PivotActiveIndex > 3 and PivotActiveIndex <> 0 and PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex ) = 2 and high[PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex )] > high[PivotHighVSBar(1,high[1],1,1,currentbar - PivotActiveIndex )+1] then
+	begin
+		value2=arw_new[2](d,t,low,false);  	
+		value2=text_new[2](date,time,low-16,"Pivot High") ;
+
+	end;
+
+end;
+
+
+
+
+
+
+
+
