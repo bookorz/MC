@@ -72,7 +72,7 @@ begin
 	switch(MainState)
 	begin
 		case -1://waiting for up ma
-			if close[1] > Average(close[1],MA_Value) and close[2] <= Average(close[1],MA_Value) then
+			if (close[1] > Average(close[1],MA_Value) and close[2] <= Average(close[1],MA_Value))or (date[1] <> date[2] and close[1] > Average(close[1],MA_Value)) then
 			begin// Up MA
 				if Log_Enable then
 				begin
@@ -84,7 +84,7 @@ begin
 				UpMAPrice  = Average(close[1],MA_Value);	
 				MaIndex = currentbar-1;	
 				MainState = 0;
-				if close[2]<Average(close[2],MA_Value) and close[3]<Average(close[3],MA_Value) and close[4]<Average(close[4],MA_Value) then
+				if (close[2]<Average(close[2],MA_Value) and close[3]<Average(close[3],MA_Value) and close[4]<Average(close[4],MA_Value)) or (date[1] <> date[2] and close[1] > Average(close[1],MA_Value)) then
 				begin
 					if Log_Enable then
 					begin
@@ -131,13 +131,8 @@ begin
 				end
 				else
 				begin
-					if close[2]-open[2]<0 and close[1]-open[1]>0 then
-					begin
-						print(date,time,currentbar,high[1],Highest(high[2],currentbar - MaIndex));
-						print(date,time,currentbar,close[1],Highest(close[2],currentbar - MaIndex));
-
-					end;
-					if close[2]-open[2]<0 and close[1]-open[1]>0 and High[1] > Highest(high[2],currentbar - MaIndex) and Close[1] > Highest(close[2],currentbar - MaIndex) then
+					
+					if (close[2]-open[2]<0 and low[2] >Average(close[2],MA_Value) ) and close[1]-open[1]>0 and High[1] > Highest(high[2],currentbar - MaIndex) and Close[1] > Highest(close[2],currentbar - MaIndex) and close[1] - Average(close[1],MA_Value)> MApoint then
 					begin// black K near by red K match
 						if Log_Enable then
 						begin
@@ -154,7 +149,8 @@ begin
 							EntryPrice[PositionState] = close[1];
 							//MainState = 4;
 							PositionState = PositionState + 1;
-				 			
+				 			PivotActiveIndex = currentbar-1;
+
 							CheckBarIndex = currentbar-1;
 							EntryBarIndex = currentbar-1;
 							CheckBarPrice = High[1];
@@ -181,7 +177,8 @@ begin
 									EntryPrice[PositionState] = close[1];
 									//MainState = 4;
 									PositionState = PositionState + 1;
-						 			
+						 			PivotActiveIndex = currentbar-1;
+
 									CheckBarIndex = currentbar-1;
 									EntryBarIndex = currentbar-1;
 									CheckBarPrice = High[1];
@@ -783,7 +780,7 @@ end;
 
 if Mark_Enabled then
 	begin
-	if MainState= 0 and MainState[1] <> 0 then
+	if MainState= 0 and MainState[1] = -1 then
 	begin
 		value2=arw_new[1](d,t,high,true);  	
 		value2=text_new[1](date,time,high+18,"Up MA") ;
