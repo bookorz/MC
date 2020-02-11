@@ -37,7 +37,10 @@ Close_Position_Limited_Time(1450),
 MApoint(20),
 Mark_Enabled(True),
 Log_Enable(False),
-Add_Greater_Point(1);
+Add_Greater_Point(1),
+x(10),
+y(10),
+z(1);
 
 
 
@@ -60,7 +63,7 @@ begin
 
 end;
 
-if Time < Trade_Time and Date=Date[1] then
+if Time < Trade_Time and Date=Date[1] and Volatility(x) > AverageFC(Volatility(x),y) then
 begin 
 		
 	switch(MainState)
@@ -514,7 +517,7 @@ end;
 //	value1=text_new(date,time,low-10,text(PositionState)) ;
 if PositionState > 0 then//Long exist
 begin
-	//print(date,time,currentbar,"CRRR",entryprice );
+	//print(date,time,currentbar,"CRRR",Volatility(x));
 
 	if high[1]> PeakPrice then
 	begin
@@ -569,7 +572,7 @@ begin
 	 
 	
 	
-	if Close <= StopPrice[PositionState-1] then
+	if Close <= EntryPrice[PositionState-1] - (Volatility(x)*z) then
 	begin
 		if Log_Enable then
 		begin
@@ -652,6 +655,7 @@ if Mark_Enabled then
 	end;
 
 end;
+
 
 
 
