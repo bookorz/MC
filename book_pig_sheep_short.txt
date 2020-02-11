@@ -67,7 +67,7 @@ begin
 	
 end;
 
-if Time < Trade_Time and Date=Date[1] then
+if Time < Trade_Time and Date=Date[1] and Volatility(10) > AverageFC(Volatility(10),10) then
 begin 
 	
 
