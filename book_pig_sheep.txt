@@ -16,6 +16,7 @@ intrabarpersist StopLimitLevel_1(0),
 intrabarpersist StopLimitLevel_2(0),
 intrabarpersist PivotActiveIndex(0),
 intrabarpersist PeakPrice(0),
+intrabarpersist PivotPrice(0),
 intrabarpersist PreCheck(false),
 intrabarpersist DateBeginIndex(0),
 intrabarpersist MaIndex(0);
@@ -52,6 +53,7 @@ begin
 	MainState =-1;
 	PositionState = 0;
 	PeakPrice = 0;
+	PivotPrice = 0;
 	DateBeginIndex = currentbar;
 	if time[1] < Close_Position_Limited_Time then
 	begin
@@ -72,7 +74,7 @@ begin
 	switch(MainState)
 	begin
 		case -1://waiting for up ma
-			if (close[1] > Average(close[1],MA_Value) and close[2] <= Average(close[1],MA_Value))or (date[1] <> date[2] and close[1] > Average(close[1],MA_Value)) then
+			if (close[1] > Average(close[1],MA_Value) and close[2] <= Average(close[2],MA_Value))or (date[1] <> date[2] and close[1] > Average(close[1],MA_Value)) then
 			begin// Up MA
 				if Log_Enable then
 				begin
@@ -103,15 +105,15 @@ begin
 					PreCheck = false;
 					if PivotHighVSBar(1,high[1],1,1,currentbar - DateBeginIndex) <> -1 then
 					begin
-						PeakPrice = high[PivotHighVSBar(1,high[1],1,1,currentbar - DateBeginIndex)];
+						PivotPrice = high[PivotHighVSBar(1,high[1],1,1,currentbar - DateBeginIndex)];
 					end
 					else
 					begin
-						PeakPrice = -1;
+						PivotPrice = -1;
 					end;
 					if Log_Enable then
 					begin 
-						print(date,time,currentbar,"PeakPrice:" + text(PeakPrice),MainState);
+						print(date,time,currentbar,"PeakPrice:" + text(PivotPrice ),MainState);
 					end;
 				end;
 			end;
@@ -175,14 +177,14 @@ begin
 						end
 						else if PositionState = 0 then
 						begin
-							if PeakPrice <> -1 then
+							if PivotPrice <> -1 then
 							begin
 								if Log_Enable then
 								begin
 
 									print(date,time,currentbar,"Check peak price",MainState);
 								end;
-								if close[1] > PeakPrice then
+								if close[1] > PivotPrice then
 								begin
 									
 									EntryNameList[PositionState] = "BUY Pivot"+text(PositionState); 
@@ -380,6 +382,11 @@ begin
 		sell("Stop Loss")from entry(EntryNameList[PositionState-1]) 1 share total next bar at market;
 		PositionIndex[PositionState-1] = 0;
 		PositionState = PositionState - 1;
+		if PositionState = 0 then 
+		begin
+			MainState = -1;
+		end;
+
 	end
 	else if close - EntryPrice[PositionState-1] > Force_Take_Profit then
 	begin
@@ -391,6 +398,10 @@ begin
 		sell("Force Take Profit")from entry(EntryNameList[PositionState-1]) 1 share total next bar at market;
 		PositionIndex[PositionState-1] = 0;
 		PositionState = PositionState - 1;
+		if PositionState = 0 then 
+		begin
+			MainState = -1;
+		end;
 
 	end
 	else if Close[1] <= StopLimitLevel_2 and StopLimitLevel_2 <> 0 and currentbar - PositionIndex[PositionState-1] > 1 and (MA_Limit_Level_1 =1 or MA_Limit_Level_2 = 1) then
@@ -403,7 +414,11 @@ begin
 		sell("Take Profit")from entry(EntryNameList[PositionState-1]) 1 share total next bar at market;
 		PositionIndex[PositionState-1] = 0;
 		PositionState = PositionState - 1;
-		
+		if PositionState = 0 then 
+		begin
+			MainState = -1;
+		end;
+
 	end;
 	
 
@@ -423,6 +438,7 @@ begin
 	MainState = -1;
 	PositionState = 0;
 	PeakPrice = 0;
+	PivotPrice = 0;
       	if marketposition <> 0 then
 	begin
 		sell("s-dayEnd") next bar at market;
