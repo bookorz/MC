@@ -19,7 +19,6 @@ intrabarpersist PeakPrice(0);
 
 array:
 intrabarpersist EntryNameList[60](""),
-intrabarpersist StopPrice[60](0),
 intrabarpersist EntryPrice[60](0),
 intrabarpersist PositionIndex[60](0);
 
@@ -27,7 +26,6 @@ inputs:
 MA_Limit_Trigger_Point_Level_1(80),
 MA_Limit_Trigger_Point_Level_2(120),
 Force_Take_Profit(160),
-Stop_Loss_Point(40),
 Trade_Time(1400),
 MA_Value(15),
 MA_Limit_1(5),
@@ -37,7 +35,10 @@ Close_Position_Limited_Time(1450),
 MApoint(20),
 Mark_Enabled(True),
 Log_Enable(False),
-Add_Greater_Point(1);
+Add_Greater_Point(1),
+Volatility_KBar(200),
+Volatility_KBar_MA(210),
+Stop_Loss_Ratio(4);
 
 
 
@@ -60,7 +61,7 @@ begin
 
 end;
 
-if Time < Trade_Time and Date=Date[1] then
+if Time < Trade_Time and Date=Date[1] and Volatility(Volatility_KBar) > AverageFC(Volatility(Volatility_KBar),Volatility_KBar_MA)  then
 begin 
 		
 	switch(MainState)
@@ -197,7 +198,6 @@ begin
 										sellshort("SELL"+text(PositionState))1 share next bar at market;
 										EntryNameList[PositionState] = "SELL"+text(PositionState); 
 										PositionIndex[PositionState] = currentbar;
-										StopPrice[PositionState] = close + Stop_Loss_Point;
 										EntryPrice[PositionState] = close[1];
 										//MainState = 4;
 										PositionState = PositionState + 1;
@@ -310,7 +310,7 @@ begin
 
 											sellshort("SELL Pivot"+text(PositionState))1 share next bar at market;
 											EntryNameList[PositionState] = "SELL Pivot"+text(PositionState);
-											StopPrice[PositionState] = close + Stop_Loss_Point;
+											
 											EntryPrice[PositionState] = close[1];
 											PositionIndex[PositionState] = currentbar;
 											//MainState = 4;
@@ -493,8 +493,6 @@ begin
 				sellshort("SELL Delay"+text(PositionState))1 share next bar at market;
 				EntryNameList[PositionState] = "SELL Delay"+text(PositionState);
 				//MainState = 4;
-				
-				StopPrice[PositionState] = close + Stop_Loss_Point;
 				EntryPrice[PositionState] = close;
 				PositionIndex[PositionState] = currentbar;
 				
@@ -569,7 +567,7 @@ begin
 	 
 	
 	
-	if Close >= StopPrice[PositionState-1] then
+	if Close >= EntryPrice[PositionState-1] + (Volatility(Volatility_KBar)*Stop_Loss_Ratio) then
 	begin
 		if Log_Enable then
 		begin
@@ -652,6 +650,7 @@ if Mark_Enabled then
 	end;
 
 end;
+
 
 
 
