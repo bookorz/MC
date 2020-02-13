@@ -15,7 +15,10 @@ intrabarpersist MA_Limit_Level_2(0),
 intrabarpersist StopLimitLevel_1(0),
 intrabarpersist StopLimitLevel_2(0),
 intrabarpersist PivotActiveIndex(0),
-intrabarpersist PeakPrice(0);
+intrabarpersist PeakPrice(0),
+intrabarpersist ATR_AA(0),
+intrabarpersist ATR_BB(0),
+intrabarpersist ATR_CC(0);
 
 array:
 intrabarpersist EntryNameList[60](""),
@@ -26,6 +29,7 @@ inputs:
 MA_Limit_Trigger_Point_Level_1(80),
 MA_Limit_Trigger_Point_Level_2(120),
 Force_Take_Profit(160),
+Stop_Loss_Point(40),
 Trade_Time(1400),
 MA_Value(15),
 MA_Limit_1(5),
@@ -36,12 +40,9 @@ MApoint(20),
 Mark_Enabled(True),
 Log_Enable(False),
 Add_Greater_Point(1),
-Volatility_KBar(200),
-Volatility_KBar_MA(210),
-Stop_Loss_Ratio(4);
-
-
-
+ATR_A(240),
+ATR_B(60),
+ATR_C(5);
 
  
 if Date<>Date[1] then  //When new day comming	
@@ -50,7 +51,7 @@ begin
 	PositionState = 0;
 	PeakPrice = 0;
 	if time[1] < Close_Position_Limited_Time then
-	begin
+	begin 
 		if marketposition <> 0 then
 		begin
 			sell("s-dayStart") next bar at market;
@@ -59,11 +60,19 @@ begin
 		end;
 	end;
 
-end;
-
-if Time < Trade_Time and Date=Date[1] and Volatility(Volatility_KBar) > AverageFC(Volatility(Volatility_KBar),Volatility_KBar_MA) then
+end; 
+if Time < Trade_Time and AvgTrueRange(ATR_B) <= 106 then
+begin
+	
+end
+else if Time < Trade_Time and AvgTrueRange(ATR_A) <= AvgTrueRange(ATR_A)[1] then
+begin
+	
+end
+else if Time < Trade_Time and Date=Date[1] then
 begin 
 		
+
 	switch(MainState)
 	begin
 		case 0://waiting for up ma
@@ -568,7 +577,7 @@ begin
 	 
 	
 	
-	if Close <= EntryPrice[PositionState-1] - (Volatility(Volatility_KBar)*Stop_Loss_Ratio) then
+	if Close <= EntryPrice[PositionState-1] - Stop_Loss_Point then
 	//if Close <= EntryPrice[PositionState-1] - Stop_Loss_Point then
 	begin
 		if Log_Enable then
@@ -652,6 +661,7 @@ if Mark_Enabled then
 	end;
 
 end;
+
 
 
 
