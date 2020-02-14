@@ -19,17 +19,17 @@ intrabarpersist PeakPrice(0),
 intrabarpersist ATR_AA(0),
 intrabarpersist ATR_BB(0),
 intrabarpersist ATR_CC(0),
-intrabarpersist DayStart(0);
+intrabarpersist DayStart(0),
+intrabarpersist DayStartIndex(0),
+intrabarpersist DayH(-1),
+intrabarpersist DayL(-1);
 
 array:
 intrabarpersist EntryNameList[60](""),
 intrabarpersist EntryPrice[60](0),
 intrabarpersist PositionIndex[60](0);
 
-inputs: 
-MA_Limit_Trigger_Point_Level_1(80),
-MA_Limit_Trigger_Point_Level_2(120),
-Force_Take_Profit(160),
+inputs:
 Stop_Loss_Point(40),
 Trade_Time(1400),
 MA_Value(15),
@@ -43,7 +43,10 @@ Log_Enable(False),
 Add_Greater_Point(1),
 ATR_A(240),
 ATR_B(60),
-ATR_C(5);
+ATR_C(5),
+Take_Profit_L1(50),
+Take_Profit_L2(70),
+Force_Take_Profit(100);
 
  
 if Date<>Date[1] then  //When new day comming	
@@ -62,18 +65,42 @@ begin
 		end; 
 	end;
 	 
-	 ATR_AA = AvgTrueRange(ATR_A) of data2 - AvgTrueRange(ATR_A)[1] of data2;
-	 ATR_BB = AvgTrueRange(ATR_B) of data2;
-	 ATR_CC = AvgTrueRange(ATR_C) of data2 / 106;
-	if DayStart <> date then
+	 
+	if DayStart <> date then 
 	begin
-		print(date,ATR_AA,AvgTrueRange(ATR_A) of data2,ATR_BB);
+		ATR_AA = AvgTrueRange(ATR_A)[1] of data2 - AvgTrueRange(ATR_A)[2] of data2;
+		ATR_BB = AvgTrueRange(ATR_B)[1] of data2;
+		if ATR_AA > 0 and ATR_BB > 106 then
+		begin
+			ATR_CC = AvgTrueRange(ATR_C)[1] of data2 / 106;
+			
+		end
+		else
+		begin
+			ATR_CC = 1;
+		end;
+		DayStartIndex = currentbar;
+		DayH = -1;
+		DayL = -1;
+
 	end;
 	DayStart = date;
+	
 end; 
-if Time < Trade_Time and Date=Date[1] and ATR_AA >0 and ATR_BB > 106 then
+if (Time < Trade_Time or PositionState > 0) and Date=Date[1] then
 begin 
+	if DayH = -1 then
+	begin
+		DayH = High[1];
+		DayL = Low[1];	
+	end
+	else
+	begin
+		if High[1] > DayH then DayH = High[1];
+		if Low[1] < DayL then DayL = Low[1];
 		
+	end;
+
 
 
 	switch(MainState)
@@ -525,57 +552,11 @@ end;
 //	value1=text_new(date,time,low-10,text(PositionState)) ;
 if PositionState > 0 then//Long exist
 begin
-	//print(date,time,currentbar,"CRRR",Volatility(x));
-
-	if high[1]> PeakPrice then
-	begin
-		PeakPrice = high[1];
-	end;
-	MA_Limit_Level_1 = 0;
-	MA_Limit_Level_2 = 0;
-	//print(date,time,currentbar,"marketposition = 1",PositionState , EntryPrice[PositionState-1]);
-
-	if PeakPrice  - EntryPrice[PositionState-1] > MA_Limit_Trigger_Point_Level_2 then
-	begin
-		if Log_Enable then
-		begin
-
-			print(date,time,currentbar,"MA_Limit_Level_2",MainState);
-		end;
-		MA_Limit_Level_2 = 1;
-	end
-	else if PeakPrice  - EntryPrice[PositionState-1]> MA_Limit_Trigger_Point_Level_1 then
-	begin
-		if Log_Enable then
-		begin
-
-			print(date,time,currentbar,"MA_Limit_Level_1",MainState);
-		end;
-		MA_Limit_Level_1 = 1; 
-	end;
 	
-	if MA_Limit_Level_2 = 1  then
-	begin
-		if Log_Enable then
-		begin
 
-			print(date,time,currentbar,text(StopLimitLevel_2 ),MainState);
-		end;
-
-		StopLimitLevel_2 = Average(close[1],MA_Limit_1);
-	end
-	else if MA_Limit_Level_1 = 1 then
-	begin
-		if Log_Enable then
-		begin
-
-			print(date,time,currentbar,text(StopLimitLevel_2 ),MainState);
-		end;
-		StopLimitLevel_2 = Average(close[1],MA_Limit_2);
-	end;
-	
+		
 //value2=arw_new(d,t,high,true);  	
-//value2=text_new(date,time,high+18,text(CheckBarPrice )) ;
+//value2=text_new(date,time,high+18,text(CheckBarPrice )) ; 
 	//if false then
 	 
 	
@@ -593,7 +574,7 @@ begin
 		PositionIndex[PositionState-1] = 0;
 		PositionState = PositionState - 1;
 	end
-	else if close - EntryPrice[PositionState-1] > Force_Take_Profit*ATR_CC then
+	else if DayH - DayL > Force_Take_Profit then
 	begin
 		if Log_Enable then
 		begin
@@ -605,14 +586,25 @@ begin
 		PositionState = PositionState - 1;
 
 	end
-	else if Close[1] <= StopLimitLevel_2 and StopLimitLevel_2 <> 0 and currentbar - PositionIndex[PositionState-1] > 1 and (MA_Limit_Level_1 =1 or MA_Limit_Level_2 = 1) then
+	else if DayH - DayL > Take_Profit_L2 and Close[1] < Average(close[1],MA_Limit_1) then
 	begin
 		if Log_Enable then
 		begin 
 
-			print(date,time,currentbar,"Take Profit",MainState);
+			print(date,time,currentbar,"Take Profit L2",MainState);
 		end;
-		sell("Take Profit")from entry(EntryNameList[PositionState-1]) 1 share total next bar at market;
+		sell("Take Profit L2")from entry(EntryNameList[PositionState-1]) 1 share total next bar at market;
+		PositionIndex[PositionState-1] = 0;
+		PositionState = PositionState - 1;
+	end
+	else if DayH - DayL > Take_Profit_L1 and Close[1] < Average(close[1],MA_Limit_2) then
+	begin
+		if Log_Enable then
+		begin 
+
+			print(date,time,currentbar,"Take Profit L1",MainState);
+		end;
+		sell("Take Profit L1")from entry(EntryNameList[PositionState-1]) 1 share total next bar at market;
 		PositionIndex[PositionState-1] = 0;
 		PositionState = PositionState - 1;
 
@@ -662,9 +654,14 @@ if Mark_Enabled then
 		value2=text_new[2](date,time,low-16,"Pivot High") ;
 
 	end;
+	
+end;
+if ATR_CC <> 1 and date <> date[1] then
+begin
+	value2=arw_new(d,t,low,false);  	
+	value2=text_new(date,time,low-16,"Volatility Active") ;
 
 end;
-
 
 
 
