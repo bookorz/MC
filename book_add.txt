@@ -18,7 +18,8 @@ intrabarpersist PivotActiveIndex(0),
 intrabarpersist PeakPrice(0),
 intrabarpersist ATR_AA(0),
 intrabarpersist ATR_BB(0),
-intrabarpersist ATR_CC(0);
+intrabarpersist ATR_CC(0),
+intrabarpersist DayStart(0);
 
 array:
 intrabarpersist EntryNameList[60](""),
@@ -50,28 +51,30 @@ begin
 	MainState =0;
 	PositionState = 0;
 	PeakPrice = 0;
+	
 	if time[1] < Close_Position_Limited_Time then
 	begin 
 		if marketposition <> 0 then
 		begin
 			sell("s-dayStart") next bar at market;
 			buytocover("b-dayStart") next bar at market;
-			
-		end;
+			 
+		end; 
 	end;
-
+	 
+	 ATR_AA = AvgTrueRange(ATR_A) of data2 - AvgTrueRange(ATR_A)[1] of data2;
+	 ATR_BB = AvgTrueRange(ATR_B) of data2;
+	 ATR_CC = AvgTrueRange(ATR_C) of data2 / 106;
+	if DayStart <> date then
+	begin
+		print(date,ATR_AA,AvgTrueRange(ATR_A) of data2,ATR_BB);
+	end;
+	DayStart = date;
 end; 
-if Time < Trade_Time and AvgTrueRange(ATR_B) <= 106 then
-begin
-	
-end
-else if Time < Trade_Time and AvgTrueRange(ATR_A) <= AvgTrueRange(ATR_A)[1] then
-begin
-	
-end
-else if Time < Trade_Time and Date=Date[1] then
+if Time < Trade_Time and Date=Date[1] and ATR_AA >0 and ATR_BB > 106 then
 begin 
 		
+
 
 	switch(MainState)
 	begin
@@ -170,7 +173,7 @@ begin
 
 							print(date,time,currentbar,"Buy",MainState);
 						end;
-						if close[1] - UpMAPrice > MApoint then
+						if close[1] - UpMAPrice > MApoint*ATR_CC then
 						begin
 							if Log_Enable then
 							begin
@@ -284,7 +287,7 @@ begin
 								print(date,time,currentbar,"Pivot match-1",MainState);
 							end;
 
-							if close[1] - UpMAPrice > MApoint then
+							if close[1] - UpMAPrice > MApoint*ATR_CC then
 							begin
 								if Log_Enable then
 								begin
@@ -577,7 +580,7 @@ begin
 	 
 	
 	
-	if Close <= EntryPrice[PositionState-1] - Stop_Loss_Point then
+	if Close <= EntryPrice[PositionState-1] - Stop_Loss_Point*ATR_CC then
 	//if Close <= EntryPrice[PositionState-1] - Stop_Loss_Point then
 	begin
 		if Log_Enable then
@@ -590,7 +593,7 @@ begin
 		PositionIndex[PositionState-1] = 0;
 		PositionState = PositionState - 1;
 	end
-	else if close - EntryPrice[PositionState-1] > Force_Take_Profit then
+	else if close - EntryPrice[PositionState-1] > Force_Take_Profit*ATR_CC then
 	begin
 		if Log_Enable then
 		begin
@@ -661,6 +664,7 @@ if Mark_Enabled then
 	end;
 
 end;
+
 
 
 
